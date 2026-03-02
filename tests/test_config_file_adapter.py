@@ -22,7 +22,7 @@ def build_profile(path: Path) -> Profile:
 
 
 def test_properties_write_and_preserve_unknown_fields(tmp_path: Path) -> None:
-    path = tmp_path / "syclient.properties"
+    path = tmp_path / "sysclient.properties"
     path.write_text(
         "authunit=abc\n"
         "copyright=xyz\n"

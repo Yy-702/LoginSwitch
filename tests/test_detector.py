@@ -54,10 +54,10 @@ def test_detect_with_probe_uses_ui_automation_defaults(tmp_path: Path) -> None:
     assert "wait_timeout_sec" in config
 
 
-def test_scan_config_candidates_prefers_syclient_properties(tmp_path: Path) -> None:
+def test_scan_config_candidates_prefers_sysclient_properties(tmp_path: Path) -> None:
     exe = tmp_path / "npserver.exe"
     exe.write_text("", encoding="utf-8")
-    props = tmp_path / "syclient.properties"
+    props = tmp_path / "sysclient.properties"
     props.write_text(
         "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
         encoding="utf-8",
@@ -69,12 +69,12 @@ def test_scan_config_candidates_prefers_syclient_properties(tmp_path: Path) -> N
     assert result["format"] == "properties"
 
 
-def test_scan_config_candidates_find_syclient_under_conf(tmp_path: Path) -> None:
+def test_scan_config_candidates_find_sysclient_under_conf(tmp_path: Path) -> None:
     exe = tmp_path / "npserver.exe"
     exe.write_text("", encoding="utf-8")
     conf_dir = tmp_path / "conf"
     conf_dir.mkdir()
-    props = conf_dir / "syclient.properties"
+    props = conf_dir / "sysclient.properties"
     props.write_text(
         "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
         encoding="utf-8",
@@ -89,7 +89,7 @@ def test_scan_config_candidates_find_syclient_under_conf(tmp_path: Path) -> None
 def test_scan_config_candidates_support_app_path_as_directory(tmp_path: Path) -> None:
     conf_dir = tmp_path / "conf"
     conf_dir.mkdir()
-    props = conf_dir / "syclient.properties"
+    props = conf_dir / "sysclient.properties"
     props.write_text(
         "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
         encoding="utf-8",
@@ -104,7 +104,7 @@ def test_scan_config_candidates_prefer_conf_over_root_same_name(tmp_path: Path) 
     exe = tmp_path / "npserver.exe"
     exe.write_text("", encoding="utf-8")
 
-    root_props = tmp_path / "syclient.properties"
+    root_props = tmp_path / "sysclient.properties"
     root_props.write_text(
         "ip=10.0.0.1:8000\nuserid=root_user\nmac=ROOT\n",
         encoding="utf-8",
@@ -112,7 +112,7 @@ def test_scan_config_candidates_prefer_conf_over_root_same_name(tmp_path: Path) 
 
     conf_dir = tmp_path / "conf"
     conf_dir.mkdir()
-    conf_props = conf_dir / "syclient.properties"
+    conf_props = conf_dir / "sysclient.properties"
     conf_props.write_text(
         "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
         encoding="utf-8",
@@ -135,12 +135,28 @@ def test_scan_config_candidates_skip_log4j_properties(tmp_path: Path) -> None:
         "log4j.appender.USETIMEFILE.File=logs/sqlusetime.log\n",
         encoding="utf-8",
     )
-    syclient = conf_dir / "syclient.properties"
-    syclient.write_text(
+    sysclient = conf_dir / "sysclient.properties"
+    sysclient.write_text(
         "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
         encoding="utf-8",
     )
 
     result = scan_config_candidates(str(exe))
     assert result is not None
-    assert result["path"] == str(syclient)
+    assert result["path"] == str(sysclient)
+
+
+def test_scan_config_candidates_compat_legacy_syclient_name(tmp_path: Path) -> None:
+    exe = tmp_path / "npserver.exe"
+    exe.write_text("", encoding="utf-8")
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+    props = conf_dir / "syclient.properties"
+    props.write_text(
+        "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
+        encoding="utf-8",
+    )
+
+    result = scan_config_candidates(str(exe))
+    assert result is not None
+    assert result["path"] == str(props)

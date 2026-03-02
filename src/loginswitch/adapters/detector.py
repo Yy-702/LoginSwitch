@@ -34,8 +34,11 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
         base_dir = raw_path if raw_path.is_dir() else raw_path.parent
         stem = raw_path.stem.lower() if raw_path.is_file() else raw_path.name.lower()
 
-        conf_props = base_dir / "conf" / "syclient.properties"
-        if conf_props.exists() and conf_props.is_file():
+        conf_props = _first_existing(
+            base_dir / "conf" / "sysclient.properties",
+            base_dir / "conf" / "syclient.properties",
+        )
+        if conf_props is not None and conf_props.is_file():
             return {
                 "path": str(conf_props),
                 "format": "properties",
@@ -44,6 +47,7 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
 
         candidate_dirs = [base_dir / "conf", base_dir / "config", base_dir]
         preferred_names = (
+            "sysclient.properties",
             "syclient.properties",
             f"{stem}.ini",
             f"{stem}.config",
@@ -163,3 +167,10 @@ def _looks_like_properties_login(path: Path) -> bool:
         if key:
             keys.add(key)
     return len(keys & LOGIN_KEYWORDS) >= 2
+
+
+def _first_existing(*paths: Path) -> Path | None:
+    for path in paths:
+        if path.exists():
+            return path
+    return None
