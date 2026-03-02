@@ -98,3 +98,26 @@ def test_scan_config_candidates_support_app_path_as_directory(tmp_path: Path) ->
     result = scan_config_candidates(str(tmp_path))
     assert result is not None
     assert result["path"] == str(props)
+
+
+def test_scan_config_candidates_prefer_conf_over_root_same_name(tmp_path: Path) -> None:
+    exe = tmp_path / "npserver.exe"
+    exe.write_text("", encoding="utf-8")
+
+    root_props = tmp_path / "syclient.properties"
+    root_props.write_text(
+        "ip=10.0.0.1:8000\nuserid=root_user\nmac=ROOT\n",
+        encoding="utf-8",
+    )
+
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+    conf_props = conf_dir / "syclient.properties"
+    conf_props.write_text(
+        "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
+        encoding="utf-8",
+    )
+
+    result = scan_config_candidates(str(exe))
+    assert result is not None
+    assert result["path"] == str(conf_props)

@@ -35,7 +35,15 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
         base_dir = raw_path if raw_path.is_dir() else raw_path.parent
         stem = raw_path.stem.lower() if raw_path.is_file() else raw_path.name.lower()
 
-        candidate_dirs = [base_dir, base_dir / "conf", base_dir / "config"]
+        conf_props = base_dir / "conf" / "syclient.properties"
+        if conf_props.exists() and conf_props.is_file() and _looks_like_login_config(conf_props):
+            return {
+                "path": str(conf_props),
+                "format": "properties",
+                "keyMap": {"server": "ip", "userId": "userid", "nic": "mac"},
+            }
+
+        candidate_dirs = [base_dir / "conf", base_dir / "config", base_dir]
         preferred_names = (
             "syclient.properties",
             f"{stem}.ini",
