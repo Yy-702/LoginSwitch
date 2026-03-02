@@ -10,3 +10,9 @@ def test_parse_title_patterns() -> None:
     adapter = UIAutomationAdapter()
     patterns = adapter.parse_title_patterns("系统登录|广州医药.*管理信息系统| Login ")
     assert patterns == ["系统登录", "广州医药.*管理信息系统", "Login"]
+
+
+def test_parse_class_patterns() -> None:
+    adapter = UIAutomationAdapter()
+    patterns = adapter.parse_class_patterns("#32770|ThunderRT6FormDC| ")
+    assert patterns == ["#32770", "ThunderRT6FormDC"]

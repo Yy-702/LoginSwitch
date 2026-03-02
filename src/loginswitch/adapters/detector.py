@@ -72,7 +72,11 @@ def detect_with_probe(app_path: str) -> tuple[str, dict]:
     if reg:
         return "registry", reg
 
-    return "ui_automation", {}
+    return "ui_automation", {
+        "window_title_re": "系统登录|登录|管理信息系统",
+        "window_class_re": "#32770|ThunderRT6FormDC",
+        "wait_timeout_sec": 15,
+    }
 
 
 def _looks_like_login_config(path: Path) -> bool:

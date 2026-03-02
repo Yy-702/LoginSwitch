@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from loginswitch.adapters.detector import detect_adapter_mode, scan_config_candidates
+from loginswitch.adapters.detector import (
+    detect_adapter_mode,
+    detect_with_probe,
+    scan_config_candidates,
+)
 
 
 def test_detecter_prefers_config_file() -> None:
@@ -39,3 +43,12 @@ def test_scan_config_candidates_match_login_file(tmp_path: Path) -> None:
     result = scan_config_candidates(str(exe))
     assert result is not None
     assert result["path"] == str(ini)
+
+
+def test_detect_with_probe_uses_ui_automation_defaults(tmp_path: Path) -> None:
+    exe = tmp_path / "client.exe"
+    mode, config = detect_with_probe(str(exe))
+    assert mode == "ui_automation"
+    assert "window_title_re" in config
+    assert "window_class_re" in config
+    assert "wait_timeout_sec" in config

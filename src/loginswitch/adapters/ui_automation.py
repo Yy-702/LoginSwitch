@@ -18,18 +18,30 @@ class UIAutomationAdapter:
     def parse_title_patterns(self, title_re: str) -> list[str]:
         return [item.strip() for item in title_re.split("|") if item.strip()]
 
+    def parse_class_patterns(self, class_re: str) -> list[str]:
+        return [item.strip() for item in class_re.split("|") if item.strip()]
+
     def apply(self, profile: Profile, credential: dict[str, str | None]) -> bool:
         self.last_error = ""
         title_re = profile.adapter_config.get("window_title_re", "系统登录|登录|管理信息系统")
+        class_re = profile.adapter_config.get("window_class_re", "#32770|ThunderRT6FormDC")
         timeout = float(profile.adapter_config.get("wait_timeout_sec", 10))
         patterns = self.parse_title_patterns(title_re)
+        class_patterns = self.parse_class_patterns(class_re)
         reasons: list[str] = []
 
         pyw_ok = self._try_with_pywinauto(profile, credential, title_re, timeout, reasons)
         if pyw_ok:
             return True
 
-        native_ok = self._try_with_win32_native(profile, credential, patterns, timeout, reasons)
+        native_ok = self._try_with_win32_native(
+            profile,
+            credential,
+            patterns,
+            class_patterns,
+            timeout,
+            reasons,
+        )
         if native_ok:
             return True
 
@@ -172,6 +184,7 @@ class UIAutomationAdapter:
         profile: Profile,
         credential: dict[str, str | None],
         title_patterns: list[str],
+        class_patterns: list[str],
         timeout: float,
         reasons: list[str],
     ) -> bool:
@@ -187,7 +200,7 @@ class UIAutomationAdapter:
             return False
 
         user32 = ctypes.windll.user32
-        hwnd = self._native_wait_main_window(user32, wintypes, title_patterns, timeout)
+        hwnd = self._native_wait_main_window(user32, wintypes, title_patterns, class_patterns, timeout)
         if not hwnd:
             reasons.append("native_window_not_found")
             return False
@@ -219,16 +232,29 @@ class UIAutomationAdapter:
         reasons.append("tip_try_run_as_admin")
         return False
 
-    def _native_wait_main_window(self, user32: Any, wintypes: Any, patterns: list[str], timeout: float) -> int:
+    def _native_wait_main_window(
+        self,
+        user32: Any,
+        wintypes: Any,
+        title_patterns: list[str],
+        class_patterns: list[str],
+        timeout: float,
+    ) -> int:
         end_at = time.time() + timeout
         while time.time() < end_at:
-            hwnd = self._native_find_main_window(user32, wintypes, patterns)
+            hwnd = self._native_find_main_window(user32, wintypes, title_patterns, class_patterns)
             if hwnd:
                 return hwnd
             time.sleep(0.2)
         return 0
 
-    def _native_find_main_window(self, user32: Any, wintypes: Any, patterns: list[str]) -> int:
+    def _native_find_main_window(
+        self,
+        user32: Any,
+        wintypes: Any,
+        title_patterns: list[str],
+        class_patterns: list[str],
+    ) -> int:
         import ctypes
 
         found = 0
@@ -239,7 +265,8 @@ class UIAutomationAdapter:
             if not user32.IsWindowVisible(hwnd):
                 return True
             title = self._native_window_text(user32, hwnd)
-            if self._title_matches(title, patterns):
+            cls = self._native_class_name(user32, hwnd)
+            if self._title_matches(title, title_patterns) or self._class_matches(cls, class_patterns):
                 found = int(hwnd)
                 return False
             return True
@@ -314,5 +341,17 @@ class UIAutomationAdapter:
                     return True
             except re.error:
                 if pattern in title:
+                    return True
+        return False
+
+    def _class_matches(self, class_name: str, patterns: list[str]) -> bool:
+        if not class_name:
+            return False
+        for pattern in patterns:
+            try:
+                if re.search(pattern, class_name, re.IGNORECASE):
+                    return True
+            except re.error:
+                if pattern.lower() in class_name.lower():
                     return True
         return False
