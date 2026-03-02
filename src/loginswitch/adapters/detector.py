@@ -35,6 +35,7 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
         parent = exe_path.parent
         stem = exe_path.stem.lower()
         preferred_names = (
+            "syclient.properties",
             f"{stem}.ini",
             f"{stem}.config",
             "config.ini",
@@ -45,7 +46,7 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
             if candidate.exists():
                 candidates.append(candidate)
 
-        for suffix in ("*.ini", "*.config", "*.xml", "*.json"):
+        for suffix in ("*.properties", "*.ini", "*.config", "*.xml", "*.json"):
             candidates.extend(parent.glob(suffix))
 
     seen: set[Path] = set()
@@ -54,7 +55,17 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
             continue
         seen.add(candidate)
         if candidate.is_file() and _looks_like_login_config(candidate):
-            return {"path": str(candidate), "section": _guess_ini_section(candidate)}
+            if candidate.suffix.lower() == ".properties":
+                return {
+                    "path": str(candidate),
+                    "format": "properties",
+                    "keyMap": {"server": "ip", "userId": "userid", "nic": "mac"},
+                }
+            return {
+                "path": str(candidate),
+                "format": "ini",
+                "section": _guess_ini_section(candidate),
+            }
     return None
 
 

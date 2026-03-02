@@ -52,3 +52,18 @@ def test_detect_with_probe_uses_ui_automation_defaults(tmp_path: Path) -> None:
     assert "window_title_re" in config
     assert "window_class_re" in config
     assert "wait_timeout_sec" in config
+
+
+def test_scan_config_candidates_prefers_syclient_properties(tmp_path: Path) -> None:
+    exe = tmp_path / "npserver.exe"
+    exe.write_text("", encoding="utf-8")
+    props = tmp_path / "syclient.properties"
+    props.write_text(
+        "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
+        encoding="utf-8",
+    )
+
+    result = scan_config_candidates(str(exe))
+    assert result is not None
+    assert result["path"] == str(props)
+    assert result["format"] == "properties"
