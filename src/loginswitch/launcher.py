@@ -35,7 +35,18 @@ class LauncherService:
         if profile.adapter_mode == "ui_automation":
             # UI 自动化需要等待客户端窗口出现后再回填。
             self.process_launcher.launch(profile.app_path)
-            adapter.apply(profile, credential)
+            applied = adapter.apply(profile, credential)
+            if applied is False:
+                msg = "客户端已启动，但回填失败，请检查窗口匹配或控件映射"
+                self.audit_logger.write(
+                    "switch_failed",
+                    {
+                        "profileId": profile.id,
+                        "adapterMode": profile.adapter_mode,
+                        "message": msg,
+                    },
+                )
+                return SwitchResult(False, msg)
         else:
             adapter.apply(profile, credential)
             self.process_launcher.launch(profile.app_path)
