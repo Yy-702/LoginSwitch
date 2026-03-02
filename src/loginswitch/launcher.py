@@ -32,8 +32,13 @@ class LauncherService:
             self.audit_logger.write("switch_failed", {"profileId": profile.id, "message": msg})
             return SwitchResult(False, msg)
 
-        adapter.apply(profile, credential)
-        self.process_launcher.launch(profile.app_path)
+        if profile.adapter_mode == "ui_automation":
+            # UI 自动化需要等待客户端窗口出现后再回填。
+            self.process_launcher.launch(profile.app_path)
+            adapter.apply(profile, credential)
+        else:
+            adapter.apply(profile, credential)
+            self.process_launcher.launch(profile.app_path)
         self.audit_logger.write(
             "switch_success",
             {

@@ -1,4 +1,6 @@
-from loginswitch.adapters.detector import detect_adapter_mode
+from pathlib import Path
+
+from loginswitch.adapters.detector import detect_adapter_mode, scan_config_candidates
 
 
 def test_detecter_prefers_config_file() -> None:
@@ -14,3 +16,26 @@ def test_detecter_fallback_to_registry() -> None:
 def test_detecter_fallback_to_ui_automation() -> None:
     mode = detect_adapter_mode(config_file_hit=False, registry_hit=False)
     assert mode == "ui_automation"
+
+
+def test_scan_config_candidates_skip_unrelated_file(tmp_path: Path) -> None:
+    exe = tmp_path / "client.exe"
+    exe.write_text("", encoding="utf-8")
+    (tmp_path / "random.ini").write_text("[General]\nfoo=bar\n", encoding="utf-8")
+
+    result = scan_config_candidates(str(exe))
+    assert result is None
+
+
+def test_scan_config_candidates_match_login_file(tmp_path: Path) -> None:
+    exe = tmp_path / "client.exe"
+    exe.write_text("", encoding="utf-8")
+    ini = tmp_path / "client.ini"
+    ini.write_text(
+        "[Login]\nserver=192.168.1.1:8000\nuser_id=qa01\n",
+        encoding="utf-8",
+    )
+
+    result = scan_config_candidates(str(exe))
+    assert result is not None
+    assert result["path"] == str(ini)
