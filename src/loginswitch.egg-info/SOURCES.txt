@@ -1,0 +1,9 @@
+pyproject.toml
+src/loginswitch.egg-info/PKG-INFO
+src/loginswitch.egg-info/SOURCES.txt
+src/loginswitch.egg-info/dependency_links.txt
+src/loginswitch.egg-info/requires.txt
+src/loginswitch.egg-info/top_level.txt
+tests/test_detector.py
+tests/test_launcher.py
+tests/test_profile_store.py

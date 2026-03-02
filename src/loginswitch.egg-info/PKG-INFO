@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: loginswitch
+Version: 0.1.0
+Summary: 桌面客户端环境与账号快速切换启动器
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: keyring>=24.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
