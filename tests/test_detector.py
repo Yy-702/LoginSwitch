@@ -67,3 +67,34 @@ def test_scan_config_candidates_prefers_syclient_properties(tmp_path: Path) -> N
     assert result is not None
     assert result["path"] == str(props)
     assert result["format"] == "properties"
+
+
+def test_scan_config_candidates_find_syclient_under_conf(tmp_path: Path) -> None:
+    exe = tmp_path / "npserver.exe"
+    exe.write_text("", encoding="utf-8")
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+    props = conf_dir / "syclient.properties"
+    props.write_text(
+        "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
+        encoding="utf-8",
+    )
+
+    result = scan_config_candidates(str(exe))
+    assert result is not None
+    assert result["path"] == str(props)
+    assert result["format"] == "properties"
+
+
+def test_scan_config_candidates_support_app_path_as_directory(tmp_path: Path) -> None:
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+    props = conf_dir / "syclient.properties"
+    props.write_text(
+        "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
+        encoding="utf-8",
+    )
+
+    result = scan_config_candidates(str(tmp_path))
+    assert result is not None
+    assert result["path"] == str(props)

@@ -28,12 +28,14 @@ def detect_adapter_mode(config_file_hit: bool, registry_hit: bool) -> str:
 
 
 def scan_config_candidates(app_path: str) -> dict[str, str] | None:
-    exe_path = Path(app_path)
+    raw_path = Path(app_path)
     candidates: list[Path] = []
 
-    if exe_path.exists():
-        parent = exe_path.parent
-        stem = exe_path.stem.lower()
+    if raw_path.exists():
+        base_dir = raw_path if raw_path.is_dir() else raw_path.parent
+        stem = raw_path.stem.lower() if raw_path.is_file() else raw_path.name.lower()
+
+        candidate_dirs = [base_dir, base_dir / "conf", base_dir / "config"]
         preferred_names = (
             "syclient.properties",
             f"{stem}.ini",
@@ -41,13 +43,16 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
             "config.ini",
             "login.ini",
         )
-        for name in preferred_names:
-            candidate = parent / name
-            if candidate.exists():
-                candidates.append(candidate)
 
-        for suffix in ("*.properties", "*.ini", "*.config", "*.xml", "*.json"):
-            candidates.extend(parent.glob(suffix))
+        for directory in candidate_dirs:
+            if not directory.exists() or not directory.is_dir():
+                continue
+            for name in preferred_names:
+                candidate = directory / name
+                if candidate.exists():
+                    candidates.append(candidate)
+            for suffix in ("*.properties", "*.ini", "*.config", "*.xml", "*.json"):
+                candidates.extend(directory.glob(suffix))
 
     seen: set[Path] = set()
     for candidate in candidates:
