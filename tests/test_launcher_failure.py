@@ -11,6 +11,8 @@ class FakeCreds:
 
 
 class FailAdapter:
+    last_error = "window_not_found"
+
     def apply(self, profile, credential):
         return False
 
@@ -62,5 +64,5 @@ def test_switch_and_launch_fail_when_adapter_apply_failed() -> None:
     result = service.switch_and_launch(profile)
 
     assert result.success is False
-    assert "回填失败" in result.message
+    assert "window_not_found" in result.message
     assert any(event == "switch_failed" for event, _ in audit.events)

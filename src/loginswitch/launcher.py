@@ -37,7 +37,8 @@ class LauncherService:
             self.process_launcher.launch(profile.app_path)
             applied = adapter.apply(profile, credential)
             if applied is False:
-                msg = "客户端已启动，但回填失败，请检查窗口匹配或控件映射"
+                reason = getattr(adapter, "last_error", "unknown")
+                msg = f"客户端已启动，但回填失败({reason})，请检查窗口匹配或控件映射"
                 self.audit_logger.write(
                     "switch_failed",
                     {
