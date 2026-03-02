@@ -121,3 +121,26 @@ def test_scan_config_candidates_prefer_conf_over_root_same_name(tmp_path: Path) 
     result = scan_config_candidates(str(exe))
     assert result is not None
     assert result["path"] == str(conf_props)
+
+
+def test_scan_config_candidates_skip_log4j_properties(tmp_path: Path) -> None:
+    exe = tmp_path / "npserver.exe"
+    exe.write_text("", encoding="utf-8")
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+
+    log4j = conf_dir / "log4j.properties"
+    log4j.write_text(
+        "log4j.rootCategory=DEBUG, CONSOLE,FILE\n"
+        "log4j.appender.USETIMEFILE.File=logs/sqlusetime.log\n",
+        encoding="utf-8",
+    )
+    syclient = conf_dir / "syclient.properties"
+    syclient.write_text(
+        "ip=192.168.9.120:8000\nuserid=200000901\nmac=AA-BB\n",
+        encoding="utf-8",
+    )
+
+    result = scan_config_candidates(str(exe))
+    assert result is not None
+    assert result["path"] == str(syclient)

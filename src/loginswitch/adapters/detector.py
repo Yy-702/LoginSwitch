@@ -1,22 +1,21 @@
 from __future__ import annotations
 
 import configparser
+import re
 from pathlib import Path
 
-LOGIN_KEYWORDS = (
+LOGIN_KEYWORDS = {
     "server",
-    "服务器",
-    "user",
+    "ip",
     "userid",
     "user_id",
-    "账号",
+    "user",
     "role",
-    "角色",
     "nic",
-    "网卡",
+    "mac",
     "password",
     "pwd",
-)
+}
 
 
 def detect_adapter_mode(config_file_hit: bool, registry_hit: bool) -> str:
@@ -36,7 +35,7 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
         stem = raw_path.stem.lower() if raw_path.is_file() else raw_path.name.lower()
 
         conf_props = base_dir / "conf" / "syclient.properties"
-        if conf_props.exists() and conf_props.is_file() and _looks_like_login_config(conf_props):
+        if conf_props.exists() and conf_props.is_file():
             return {
                 "path": str(conf_props),
                 "format": "properties",
@@ -67,6 +66,8 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
         if candidate in seen:
             continue
         seen.add(candidate)
+        if candidate.name.lower().startswith("log4j"):
+            continue
         if candidate.is_file() and _looks_like_login_config(candidate):
             if candidate.suffix.lower() == ".properties":
                 return {
@@ -104,6 +105,10 @@ def detect_with_probe(app_path: str) -> tuple[str, dict]:
 
 
 def _looks_like_login_config(path: Path) -> bool:
+    suffix = path.suffix.lower()
+    if suffix == ".properties":
+        return _looks_like_properties_login(path)
+
     if path.suffix.lower() == ".ini":
         parser = configparser.ConfigParser()
         try:
@@ -111,8 +116,8 @@ def _looks_like_login_config(path: Path) -> bool:
         except (configparser.Error, OSError):
             return False
         for section in parser.sections():
-            keys = [key.lower() for key in parser.options(section)]
-            if any(any(keyword in key for keyword in LOGIN_KEYWORDS) for key in keys):
+            keys = {key.lower() for key in parser.options(section)}
+            if len(keys & LOGIN_KEYWORDS) >= 2:
                 return True
         return False
 
@@ -120,7 +125,8 @@ def _looks_like_login_config(path: Path) -> bool:
         content = path.read_text(encoding="utf-8", errors="ignore").lower()
     except OSError:
         return False
-    return any(keyword in content for keyword in LOGIN_KEYWORDS)
+    pattern = r"(?i)(server|ip|userid|user_id|mac|nic|password|pwd)\s*[:=]"
+    return re.search(pattern, content) is not None
 
 
 def _guess_ini_section(path: Path) -> str:
@@ -138,3 +144,22 @@ def _guess_ini_section(path: Path) -> str:
         if any(key in ("server", "user", "user_id", "userid", "password") for key in section_keys):
             return section
     return "Login"
+
+
+def _looks_like_properties_login(path: Path) -> bool:
+    try:
+        content = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except OSError:
+        return False
+
+    keys: set[str] = set()
+    for line in content:
+        raw = line.strip()
+        if not raw or raw.startswith("#") or raw.startswith("!"):
+            continue
+        if "=" not in raw:
+            continue
+        key = raw.split("=", 1)[0].strip().lower()
+        if key:
+            keys.add(key)
+    return len(keys & LOGIN_KEYWORDS) >= 2
