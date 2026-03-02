@@ -24,21 +24,42 @@ def build_profile(path: Path) -> Profile:
 def test_properties_write_and_preserve_unknown_fields(tmp_path: Path) -> None:
     path = tmp_path / "sysclient.properties"
     path.write_text(
-        "authunit=abc\n"
-        "copyright=xyz\n"
+        "authunit=旧值\n"
+        "copyright=旧值2\n"
         "ip=192.168.9.120:8000\n"
         "mac=OLD-MAC\n"
         "userid=200000901\n",
-        encoding="utf-8",
+        encoding="gbk",
     )
 
     adapter = ConfigFileAdapter()
     profile = build_profile(path)
     adapter.apply(profile, {"username": "6150", "password": None})
 
-    content = path.read_text(encoding="utf-8")
-    assert "authunit=abc" in content
-    assert "copyright=xyz" in content
+    raw = path.read_bytes()
+    content = raw.decode("gbk")
+    lines = content.splitlines()
+    assert lines[0] == "authunit=广州医药股份有限公司"
+    assert lines[1] == "copyright=北京英克信息科技有限公司"
     assert "ip=192.168.170.154:8090" in content
     assert "mac=6C-3C-8C-47-D6-03" in content
     assert "userid=6150" in content
+
+
+def test_properties_insert_default_header_if_missing(tmp_path: Path) -> None:
+    path = tmp_path / "sysclient.properties"
+    path.write_text(
+        "ip=192.168.9.120:8000\n"
+        "mac=OLD-MAC\n"
+        "userid=200000901\n",
+        encoding="gbk",
+    )
+
+    adapter = ConfigFileAdapter()
+    profile = build_profile(path)
+    adapter.apply(profile, {"username": "6150", "password": None})
+
+    content = path.read_bytes().decode("gbk")
+    lines = content.splitlines()
+    assert lines[0].startswith("authunit=")
+    assert lines[1].startswith("copyright=")

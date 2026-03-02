@@ -67,6 +67,8 @@ def test_scan_config_candidates_prefers_sysclient_properties(tmp_path: Path) -> 
     assert result is not None
     assert result["path"] == str(props)
     assert result["format"] == "properties"
+    assert result["encoding"] == "gbk"
+    assert "defaultProps" in result
 
 
 def test_scan_config_candidates_find_sysclient_under_conf(tmp_path: Path) -> None:

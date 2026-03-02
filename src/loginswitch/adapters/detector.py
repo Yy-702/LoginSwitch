@@ -42,7 +42,12 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
             return {
                 "path": str(conf_props),
                 "format": "properties",
+                "encoding": "gbk",
                 "keyMap": {"server": "ip", "userId": "userid", "nic": "mac"},
+                "defaultProps": {
+                    "authunit": "广州医药股份有限公司",
+                    "copyright": "北京英克信息科技有限公司",
+                },
             }
 
         candidate_dirs = [base_dir / "conf", base_dir / "config", base_dir]
@@ -77,7 +82,12 @@ def scan_config_candidates(app_path: str) -> dict[str, str] | None:
                 return {
                     "path": str(candidate),
                     "format": "properties",
+                    "encoding": "gbk",
                     "keyMap": {"server": "ip", "userId": "userid", "nic": "mac"},
+                    "defaultProps": {
+                        "authunit": "广州医药股份有限公司",
+                        "copyright": "北京英克信息科技有限公司",
+                    },
                 }
             return {
                 "path": str(candidate),
