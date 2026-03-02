@@ -21,6 +21,13 @@ class UIAutomationAdapter:
     def parse_class_patterns(self, class_re: str) -> list[str]:
         return [item.strip() for item in class_re.split("|") if item.strip()]
 
+    def is_likely_login_structure(self, class_names: list[str]) -> bool:
+        normalized = [name.lower() for name in class_names]
+        edit_count = sum(1 for name in normalized if name.startswith("edit"))
+        combo_count = sum(1 for name in normalized if name.startswith("combobox"))
+        button_count = sum(1 for name in normalized if name.startswith("button"))
+        return edit_count >= 2 and button_count >= 1 and (combo_count >= 1 or edit_count >= 3)
+
     def apply(self, profile: Profile, credential: dict[str, str | None]) -> bool:
         self.last_error = ""
         title_re = profile.adapter_config.get("window_title_re", "系统登录|登录|管理信息系统")
@@ -245,6 +252,9 @@ class UIAutomationAdapter:
             hwnd = self._native_find_main_window(user32, wintypes, title_patterns, class_patterns)
             if hwnd:
                 return hwnd
+            hwnd = self._native_find_window_by_structure(user32, wintypes)
+            if hwnd:
+                return hwnd
             time.sleep(0.2)
         return 0
 
@@ -274,6 +284,25 @@ class UIAutomationAdapter:
         user32.EnumWindows(enum_proc, 0)
         return found
 
+    def _native_find_window_by_structure(self, user32: Any, wintypes: Any) -> int:
+        import ctypes
+
+        found = 0
+
+        @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        def enum_proc(hwnd: int, _lparam: int) -> bool:
+            nonlocal found
+            if not user32.IsWindowVisible(hwnd):
+                return True
+            child_classes = self._native_enum_child_classes(user32, wintypes, int(hwnd))
+            if self.is_likely_login_structure(child_classes):
+                found = int(hwnd)
+                return False
+            return True
+
+        user32.EnumWindows(enum_proc, 0)
+        return found
+
     def _native_enum_children_by_class(
         self,
         user32: Any,
@@ -295,6 +324,21 @@ class UIAutomationAdapter:
 
         user32.EnumChildWindows(parent_hwnd, enum_child_proc, 0)
         return handles
+
+    def _native_enum_child_classes(self, user32: Any, wintypes: Any, parent_hwnd: int) -> list[str]:
+        import ctypes
+
+        classes: list[str] = []
+
+        @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        def enum_child_proc(hwnd: int, _lparam: int) -> bool:
+            cls = self._native_class_name(user32, hwnd)
+            if cls:
+                classes.append(cls)
+            return True
+
+        user32.EnumChildWindows(parent_hwnd, enum_child_proc, 0)
+        return classes
 
     def _native_window_text(self, user32: Any, hwnd: int) -> str:
         import ctypes

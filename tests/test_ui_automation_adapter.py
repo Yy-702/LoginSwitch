@@ -16,3 +16,9 @@ def test_parse_class_patterns() -> None:
     adapter = UIAutomationAdapter()
     patterns = adapter.parse_class_patterns("#32770|ThunderRT6FormDC| ")
     assert patterns == ["#32770", "ThunderRT6FormDC"]
+
+
+def test_is_likely_login_structure() -> None:
+    adapter = UIAutomationAdapter()
+    assert adapter.is_likely_login_structure(["Edit", "Edit", "ComboBox", "ComboBox", "Button"])
+    assert not adapter.is_likely_login_structure(["Button", "Static"])
